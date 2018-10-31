@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+dnsmasq $@
+
+docker-gen -watch -only-exposed -notify "killall -HUP dnsmasq" /tmp/internal.tmpl /tmp/hosts/internal.host

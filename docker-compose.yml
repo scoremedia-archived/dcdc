@@ -1,0 +1,51 @@
+version: "3.7"
+
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    networks:
+      default:
+        ipv4_address: 172.25.0.254
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./nginx-proxy/test.crt:/etc/nginx/certs/test.crt
+      - ./nginx-proxy/test.key:/etc/nginx/certs/test.key
+
+  dnsmasq-ext:
+    image: andyshinn/dnsmasq
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+    networks:
+      default:
+        ipv4_address: 172.25.0.252
+    cap_add:
+      - NET_ADMIN
+    command: --log-facility=- --hostsdir=/tmp/hosts
+    volumes:
+      - ./dnsmasq-ext/dnsmasq.conf:/etc/dnsmasq.conf
+      - ./dnsmasq-ext/external.host:/tmp/hosts/external.host
+
+  dnsmasq-int:
+    build: ./dnsmasq-int
+    networks:
+      default:
+        ipv4_address: 172.25.0.253
+    cap_add:
+      - NET_ADMIN
+    command: --log-facility=- --hostsdir=/tmp/hosts
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./dnsmasq-int/dnsmasq.conf:/etc/dnsmasq.conf
+      - ./dnsmasq-int/internal.tmpl:/tmp/internal.tmpl
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/16

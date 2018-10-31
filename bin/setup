@@ -1,0 +1,38 @@
+#!/bin/bash
+echo "Asking for your password here to:"
+echo " - Create a '*.test' resolver (DNS) to point to your localhost"
+echo " - Add and trust a self-signed certificate for '*.test' into your system's keychain"
+echo " - Create new IPs on loopback network interface (as defined in dnsmasq-ext/external.host)"
+echo ""
+
+# Create the required resolver file to point to localhost
+echo "Creating '*.test' resolver"
+sudo mkdir -p /etc/resolver
+sudo tee /etc/resolver/test >/dev/null <<EOF
+nameserver 127.0.0.1
+EOF
+
+# Cert is created using the following command
+# from https://medium.com/@hunk/self-assigned-ssl-with-docker-for-dev-domains-1396f71c0b77:
+#
+# openssl req \
+#     -newkey rsa:2048 \
+#     -x509 \
+#     -nodes \
+#     -keyout test.key \
+#     -new \
+#     -out test.crt \
+#     -subj /CN=\*.test \
+#     -reqexts SAN \
+#     -extensions SAN \
+#     -config <(cat /System/Library/OpenSSL/openssl.cnf \
+#         <(printf '[SAN]\nsubjectAltName=DNS:\*.test')) \
+#     -sha256 \
+#     -days 3650
+echo "Adding and trusting cert in system's keychain"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $DIR/../nginx-proxy/test.crt
+
+# Create new IPs based on ones defined in dnsmasq-ext/external.host
+echo "Creating new IPs in loopback network interface"
+cat ./dnsmasq-ext/external.host | grep -oE "^\d+.\d+\.\d+\.\d+" | xargs -I % sh -c 'sudo ifconfig lo0 add % netmask 0xffffffff'

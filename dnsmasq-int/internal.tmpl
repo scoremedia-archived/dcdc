@@ -1,0 +1,38 @@
+# The following is the DNS mapping for non-HTTP containers (i.e., databases)
+# They are dynamically determined if there is a HostIP set on the service
+# and if there is a VIRTUAL_HOST_WITH_HOSTIP environment variable set
+#
+# i.e.,
+#   ports:
+#     - 127.0.1.1:3306:3306
+#   environment:
+#     VIRTUAL_HOST_WITH_HOSTIP: "db.proj1.test"
+# --------------------------------------------------------------------------
+#
+
+{{ define "host" }}
+    {{ $project := .Project }}
+    {{ $service := .Service }}
+    {{ $non_http_container := whereNot .Container.Addresses "HostIP" "" }}
+    {{ $url := .Container.Env.VIRTUAL_HOST_WITH_HOSTIP }}
+
+    {{ if $url }}
+        {{ if (len $non_http_container) gt 0 }}
+            {{ range $index, $network := .Container.Networks }}
+                {{ if ne $network.IP "" }}
+
+# DNS for {{$project}} {{$service}}
+{{ $network.IP }}    {{ $url }}
+#
+
+                {{ end }}
+            {{ end }}
+        {{ end }}
+    {{ end }}
+{{ end }}
+
+{{ range $index, $container := $ }}
+    {{ $hosts := coalesce $container.Name (print "*." $container.Name) }}
+    {{ $host_part := split $container.Name "_" }}
+    {{ template "host" (dict "Container" $container "Project" (index $host_part 1) "Service" (index $host_part 0)) }}
+{{ end }}
