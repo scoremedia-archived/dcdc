@@ -34,5 +34,5 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $DIR/../nginx-proxy/test.crt
 
 # Create new IPs based on ones defined in dnsmasq-ext/external.host
-echo "Creating new IPs in loopback network interface"
-cat ./dnsmasq-ext/external.host | grep -oE "^\d+.\d+\.\d+\.\d+" | xargs -I % sh -c 'sudo ifconfig lo0 add % netmask 0xffffffff'
+echo "Creating new IPs in loopback network interface (from dnsmasq-ext/external.host)"
+cat $DIR/../dnsmasq-ext/external.host | grep -oE "^\d+.\d+\.\d+\.\d+" | xargs -I % sh -c 'sudo ifconfig lo0 add % netmask 0xffffffff'
