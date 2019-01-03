@@ -66,9 +66,9 @@ First, let us cover a pain point that exists when using Docker Compose and how w
 
 We have a project (i.e., `proj1`) that contains an API (`api`) service. With Docker, we are able to expose the API server's default port (`3000`). Thus `localhost:3000` routes to the API of `proj1`. We have another project (i.e., `proj2`) that also contains an API (`api`) service and is also exposed on the default port of `3000`.
 
-Both project exist as separate repositories and therefore has a different `docker-compose.yml` file. In isolation both projects run without any problem, and expose their API service on `localhost:3000`. The issue is when you want to run both projects at the same time, which might be need for development of a new feature or testing a complete flow.
+Both projects exist as separate repositories and therefore has a different `docker-compose.yml` file. In isolation, both projects run without any problem, and expose their API service on `localhost:3000`. The issue is when you want to run both projects at the same time, which might be needed for the development of a new feature or testing a complete flow.
 
-The naivee solution is to change one of the exposed ports for a project to `3001` so that the there is no clashing of ports. So for example, `proj2`'s API is now exposed on port `3001` and is reachable at `localhost:3001`.
+The naive solution is to change one of the exposed ports for a project to `3001` so that the there is no clashing of ports. So for example, `proj2`'s API is now exposed on port `3001` and is reachable at `localhost:3001`.
 
 There are a few problems here:
 
@@ -84,11 +84,11 @@ There are many approaches to accomplishing this, but ultimately we decided upon 
 
 Essentially, every Docker container which connects/disconnects to the network that `nginx-proxy` is running on will regenerate the proxy's nginx configuration. The configuration is set to proxy request to containers using a `VIRTUAL_HOST` environment variable defined in that service's `docker-compose.yml`. Nginx will proxy requests to their internal containers based on the `VIRTUAL_HOST` value.
 
-There is a little bit of extra required to make this work on macOS. We need to use `dnsmasq` to route `*.test` URLs to our proxy. To keep things containerized we use `dnsmasq` in Docker and expose the DNS resolution to the host machine (port `53`). We also need a dedicated Docker network so that all the services can communicate with each other. To ensure that services are stable we set static IPs for these essential services, and setup a default network that all `docker-compose.yml` files can use.
+There is a little bit of extra required to make this work on macOS. We need to use `dnsmasq` to route `*.test` URLs to our proxy. To keep things containerized we use `dnsmasq` in Docker and expose the DNS resolution to the host machine (port `53`). We also need a dedicated Docker network so that all the services can communicate with each other. To ensure that services are stable we set static IPs for these essential services and set up a default network that all `docker-compose.yml` files can use.
 
 #### The First Gotcha -- Internal/External Resolutions
 
-With respect to the pain points, our current solution solves #1 and #2, but doesn't address #3. We have non-clashing services, and due to the nature of how we have to setup services the default network services come up on are the same. We still want the Docker services to be consistently accessible from both the host machine and the internal Docker containers.
+With respect to the pain points, our current solution solves #1 and #2 but doesn't address #3. We have non-clashing services, and due to the nature of how we have set up the services, we use the same default docker network. We still want the Docker services to be consistently accessible from both the host machine and the internal Docker containers.
 
 Effectively, we want the same virtual host resolution to happen on both the Docker network and the host machine. To accomplish this, we need to introduce a second `dnsmasq`! We will have one for the internal DNS resolution and one for the external DNS resolution. We then specify our project containers to use the internal `dnsmasq` for it's DNS resolution, while the external one continues to function properly. This way we can refer to `api.proj1.test` both internally and externally to the Docker network.
 
@@ -100,7 +100,7 @@ To remedy this situation, we need to route our non-HTTP services directly to uni
 
 ##### Internal Changes
 
-For internal usage we're going to take advantage of [docker-gen](https://github.com/jwilder/docker-gen) to dynamically generate a _hostfile_ (`internal.host`) file. This file will list all the non-HTTP services that exist on the connected Docker network, for example:
+For internal usage, we're going to take advantage of [docker-gen](https://github.com/jwilder/docker-gen) to dynamically generate a _hostfile_ (`internal.host`) file. This file will list all the non-HTTP services that exist on the connected Docker network, for example:
 
 ```
 # The following is the DNS mapping for non-HTTP containers (i.e., databases)
@@ -120,7 +120,7 @@ For internal usage we're going to take advantage of [docker-gen](https://github.
 172.25.0.3    db.proj2.test
 ```
 
-In the above example, we list out the unique entries for the the databases of our projects that point to the IP of their container. By using `docker-gen` we ensure that this hostfile is valid based on the containers that are running on the network. We also send a `HUP` signal to `dnsmasq` after each change to the hostfile so that the DNS changes are reflected correctly.
+In the above example, we list out the unique entries for the databases of our projects that point to the IP of their container. By using `docker-gen` we ensure that this hostfile is valid based on the containers that are running on the network. We also send a `HUP` signal to `dnsmasq` after each change to the hostfile so that the DNS changes are reflected correctly.
 
 ##### External Changes
 
@@ -157,7 +157,7 @@ environment:
 #...
 ```
 
-This configuration allow the host machine to resolve `db.proj1.test` and `db.proj2.test` to use our new IPs (`127.10.0.1` and `127.11.0.1`). These IPs via Docker routes to the service's exposed ports via the HostIP configuration. Ultimately, we are able to expose non-HTTP ports for the inner service (i.e., database) externally.
+This configuration allows the host machine to resolve `db.proj1.test` and `db.proj2.test` to use our new IPs (`127.10.0.1` and `127.11.0.1`). These IPs via Docker routes to the service's exposed ports via the HostIP configuration. Ultimately, we are able to expose non-HTTP ports for the inner service (i.e., database) externally.
 
 </p>
 </details>
