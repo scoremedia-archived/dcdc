@@ -6,10 +6,10 @@
 # Goal is to have each project to operate in their own IP range.
 # Services IP must match HostIP used in that project's compose file.
 
-# # https://github.com/scoremedia/proj1
-# 127.10.0.1       db.proj1.test
-# 127.10.0.2       redis.proj2.test
+# https://github.com/scoremedia/proj1
+127.10.0.1       db.proj1.test
+#127.10.0.2       redis.proj2.test
 
-# # https://github.com/scoremedia/proj2
-# 127.11.0.1       db.proj1.test
+# https://github.com/scoremedia/proj2
+127.11.0.1       db.proj2.test
 # 127.11.0.2       redis.proj2.test

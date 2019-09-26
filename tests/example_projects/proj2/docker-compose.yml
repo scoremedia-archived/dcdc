@@ -1,0 +1,26 @@
+version: "3.7"
+
+services:
+  web:
+    environment:
+      - VIRTUAL_HOST=web.proj2.test
+    dns: 172.25.0.253
+    image: vad1mo/hello-world-rest
+
+  db:
+    image: postgres
+    ports:
+      - 127.11.0.1:5432:5432
+    environment:
+      - POSTGRES_PASSWORD=example
+      - VIRTUAL_HOST_WITH_HOSTIP=db.proj2.test
+    dns: 172.25.0.253
+
+  runner:
+    build: .
+    dns: 172.25.0.253
+
+networks:
+  default:
+    external:
+      name: dcdc_default
