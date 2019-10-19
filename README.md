@@ -7,6 +7,8 @@ DCDC's purpose is to provide an easy way to work with multiple Docker Compose pr
 2. Providing consistent DNS resolution for services internal and external to the Docker network (i.e., `db.proj.test` is accessible on host machine and also from a service's container).
 3. Requiring as little configuration to projects to make them work with DCDC.
 
+![](./dcdc-tests.png)
+
 **NOTE:** DCDC only works with macOS. It is likely possible to work for other operating systems although will require some rejigging.
 
 ## Setup
